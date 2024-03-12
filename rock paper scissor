@@ -1,0 +1,76 @@
+import cv2
+import numpy as np
+import random
+
+
+# Function to capture the user's hand gesture using the camera
+def capture_user_gesture():
+    cap = cv2.VideoCapture(0)
+
+    while True:
+        ret, frame = cap.read()
+        hand_region = frame[100:300, 100:300]
+        cv2.rectangle(frame, (100, 100), (300, 300), (0, 255, 0), 2)
+
+        hsv = cv2.cvtColor(hand_region, cv2.COLOR_BGR2HSV)
+
+        lower_range = np.array([0, 30, 50], dtype=np.uint8)
+        upper_range = np.array([40, 150, 255], dtype=np.uint8)
+
+        mask = cv2.inRange(hsv, lower_range, upper_range)
+
+        blurred = cv2.GaussianBlur(mask, (11, 11), 0)
+        _, thresholded = cv2.threshold(blurred, 170, 255, cv2.THRESH_BINARY)
+
+        contours, _ = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        if len(contours) > 0:
+            contour = max(contours, key=cv2.contourArea)
+            area = cv2.contourArea(contour)
+
+            if area > 0:
+                x, y, w, h = cv2.boundingRect(contour)
+                aspect_ratio = float(w) / h
+
+                if aspect_ratio > 1.5:
+                    gesture = "scissors"
+                else:
+                    if area < 2000:
+                        gesture = "rock"
+                    else:
+                        gesture = "paper"
+
+                return gesture
+
+        cv2.imshow("Hand Gesture", frame)
+
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+# Main game logic
+def rock_paper_scissors_game():
+    user_gesture = capture_user_gesture()
+    computer_choice = random.choice(["rock", "paper", "scissors"])
+
+    if user_gesture:
+        print(f"User choice: {user_gesture}")
+        print(f"Computer choice: {computer_choice}")
+
+        if user_gesture == computer_choice:
+            print("It's a tie!")
+        elif (
+                (user_gesture == "rock" and computer_choice == "scissors") or
+                (user_gesture == "paper" and computer_choice == "rock") or
+                (user_gesture == "scissors" and computer_choice == "paper")
+        ):
+            print("Congratulations! You win!")
+        else:
+            print("Computer wins!")
+
+
+if __name__ == "__main__":
+    rock_paper_scissors_game()
